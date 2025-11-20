@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Phone Server",
+    "mac": null,
+    "broadcast": null,
+    "ssh": {
+      "host": "10.8.0.4",
+      "port": 8022,
+      "username": "u0_a123",
+      "password": "password"
+    }
+  },
+  {
+    "name": "Ubuntu Server",
+    "mac": "04:7C:16:EA:B9:B3",
+    "broadcast": "192.168.0.255",
+    "ssh": {
+      "host": "10.8.0.3",
+      "username": "arthadede",
+      "password": "password"
+    }
+  }
+]
