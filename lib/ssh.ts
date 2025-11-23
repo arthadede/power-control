@@ -5,41 +5,40 @@ export interface SshConfig {
   port?: number;
   username: string;
   password: string;
-  ipaddress?: string; // Local network IP (192.168.0.*) for direct access
-  jumpHost?: {
-    host: string;
-    port?: number;
-    username: string;
-    password: string;
-  };
+  host_backup?: string; // Backup host (e.g., local network IP 192.168.0.*) if primary host fails
 }
 
 export async function executeShutdown(sshConfig: SshConfig): Promise<boolean> {
-  // Try local network IP first if available
-  if (sshConfig.ipaddress) {
-    console.log(`Attempting connection via local network: ${sshConfig.ipaddress}`);
-    const localConfig = {
+  // Try primary host (VPN) first
+  console.log(`Attempting connection via primary host: ${sshConfig.host}`);
+  const primaryResult = await executeShutdownDirect(sshConfig);
+
+  if (primaryResult) {
+    console.log('Successfully connected via primary host');
+    return true;
+  }
+
+  // If primary host failed and backup host is available, try backup
+  if (sshConfig.host_backup) {
+    console.log(`Primary host failed, attempting backup host: ${sshConfig.host_backup}`);
+    const backupConfig = {
       ...sshConfig,
-      host: sshConfig.ipaddress,
-      jumpHost: undefined // Don't use jump host for local network
+      host: sshConfig.host_backup
     };
 
-    const localResult = await executeShutdownDirect(localConfig);
-    if (localResult) {
-      console.log('Successfully connected via local network');
+    const backupResult = await executeShutdownDirect(backupConfig);
+    if (backupResult) {
+      console.log('Successfully connected via backup host');
       return true;
     }
 
-    console.log('Local network connection failed, falling back to VPN...');
+    console.error('Both primary and backup hosts failed');
+    return false;
   }
 
-  // If local network failed or not available, use VPN with jump host if configured
-  if (sshConfig.jumpHost) {
-    return executeShutdownViaJumpHost(sshConfig);
-  }
-
-  // Otherwise, execute shutdown directly to VPN address
-  return executeShutdownDirect(sshConfig);
+  // No backup host available
+  console.error('Primary host failed and no backup host configured');
+  return false;
 }
 
 function executeShutdownDirect(sshConfig: SshConfig): Promise<boolean> {
@@ -89,73 +88,6 @@ function executeShutdownDirect(sshConfig: SshConfig): Promise<boolean> {
 
     } catch (error) {
       console.error('SSH connection or command error:', error);
-      resolve(false);
-    }
-  });
-}
-
-function executeShutdownViaJumpHost(sshConfig: SshConfig): Promise<boolean> {
-  return new Promise((resolve) => {
-    try {
-      const jumpHost = sshConfig.jumpHost!;
-      console.log(`Connecting to jump host at ${jumpHost.host}:${jumpHost.port || 22}`);
-      console.log(`Target device: ${sshConfig.host}:${sshConfig.port || 22}`);
-
-      const ssh = new SSH({
-        host: jumpHost.host,
-        port: jumpHost.port || 22,
-        user: jumpHost.username,
-        pass: jumpHost.password,
-        timeout: 10000, // 10 seconds timeout
-      });
-
-      // Build the SSH command to execute on the jump host that connects to the target
-      // Use sshpass to handle password authentication in the nested SSH command
-      const targetPort = sshConfig.port || 22;
-      const shutdownCommand = `echo "${sshConfig.password}" | sudo -S shutdown -h +1 "System shutdown initiated by Power Control"`;
-
-      // The command to run on the jump host
-      // We use sshpass to provide password for the nested SSH connection
-      const command = `sshpass -p '${sshConfig.password}' ssh -o StrictHostKeyChecking=no -p ${targetPort} ${sshConfig.username}@${sshConfig.host} '${shutdownCommand}'`;
-
-      console.log(`Executing shutdown command through jump host for ${sshConfig.host}`);
-
-      ssh.exec(command, {
-        out: (stdout: string) => {
-          console.log('Jump host output:', stdout);
-        },
-        err: (stderr: string) => {
-          console.error('Jump host error:', stderr);
-        },
-        exit: (code: number) => {
-          console.log(`Jump host command completed with code ${code}`);
-
-          if (code === 0) {
-            console.log(`Shutdown command sent successfully to ${sshConfig.host} via jump host`);
-            resolve(true);
-          } else {
-            console.error(`Shutdown command failed with code ${code}`);
-            resolve(false);
-          }
-        }
-      }).start({
-        exit: (code: number) => {
-          console.log(`Jump host SSH connection closed with code ${code}`);
-          if (code !== 0 && code !== undefined) {
-            resolve(false);
-          }
-        },
-        ready: () => {
-          console.log(`SSH connection established to jump host ${jumpHost.host}`);
-        },
-        error: (err: Error) => {
-          console.error('Jump host SSH connection error:', err);
-          resolve(false);
-        }
-      });
-
-    } catch (error) {
-      console.error('Jump host SSH connection or command error:', error);
       resolve(false);
     }
   });
