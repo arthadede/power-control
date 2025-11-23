@@ -17,7 +17,8 @@
     "ssh": {
       "host": "10.8.0.3",
       "username": "arthadede",
-      "password": "password"
+      "password": "password",
+      "host_backup": "192.168.0.58"
     }
   }
 ]

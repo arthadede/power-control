@@ -5,9 +5,43 @@ export interface SshConfig {
   port?: number;
   username: string;
   password: string;
+  host_backup?: string; // Backup host (e.g., local network IP 192.168.0.*) if primary host fails
 }
 
 export async function executeShutdown(sshConfig: SshConfig): Promise<boolean> {
+  // Try primary host (VPN) first
+  console.log(`Attempting connection via primary host: ${sshConfig.host}`);
+  const primaryResult = await executeShutdownDirect(sshConfig);
+
+  if (primaryResult) {
+    console.log('Successfully connected via primary host');
+    return true;
+  }
+
+  // If primary host failed and backup host is available, try backup
+  if (sshConfig.host_backup) {
+    console.log(`Primary host failed, attempting backup host: ${sshConfig.host_backup}`);
+    const backupConfig = {
+      ...sshConfig,
+      host: sshConfig.host_backup
+    };
+
+    const backupResult = await executeShutdownDirect(backupConfig);
+    if (backupResult) {
+      console.log('Successfully connected via backup host');
+      return true;
+    }
+
+    console.error('Both primary and backup hosts failed');
+    return false;
+  }
+
+  // No backup host available
+  console.error('Primary host failed and no backup host configured');
+  return false;
+}
+
+function executeShutdownDirect(sshConfig: SshConfig): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       console.log(`Connecting to SSH server at ${sshConfig.host}:${sshConfig.port || 22}`);

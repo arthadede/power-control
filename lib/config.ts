@@ -10,6 +10,7 @@ export interface DeviceConfig {
     port?: number;
     username: string;
     password: string;
+    host_backup?: string; // Backup host (e.g., local network IP 192.168.0.*) if primary host fails
   };
 }
 
