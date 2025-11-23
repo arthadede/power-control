@@ -5,7 +5,7 @@ export interface SshConfig {
   port?: number;
   username: string;
   password: string;
-  localIPAddress?: string; // Local network IP (192.168.0.*) for direct access
+  ipaddress?: string; // Local network IP (192.168.0.*) for direct access
   jumpHost?: {
     host: string;
     port?: number;
@@ -16,11 +16,11 @@ export interface SshConfig {
 
 export async function executeShutdown(sshConfig: SshConfig): Promise<boolean> {
   // Try local network IP first if available
-  if (sshConfig.localIPAddress) {
-    console.log(`Attempting connection via local network: ${sshConfig.localIPAddress}`);
+  if (sshConfig.ipaddress) {
+    console.log(`Attempting connection via local network: ${sshConfig.ipaddress}`);
     const localConfig = {
       ...sshConfig,
-      host: sshConfig.localIPAddress,
+      host: sshConfig.ipaddress,
       jumpHost: undefined // Don't use jump host for local network
     };
 
