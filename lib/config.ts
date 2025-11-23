@@ -10,6 +10,13 @@ export interface DeviceConfig {
     port?: number;
     username: string;
     password: string;
+    localIPAddress?: string; // Local network IP (192.168.0.*) for direct access
+    jumpHost?: {
+      host: string;
+      port?: number;
+      username: string;
+      password: string;
+    };
   };
 }
 

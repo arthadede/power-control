@@ -7,7 +7,12 @@
       "host": "10.8.0.4",
       "port": 8022,
       "username": "u0_a123",
-      "password": "password"
+      "password": "password",
+      "jumpHost": {
+        "host": "10.8.0.3",
+        "username": "arthadede",
+        "password": "password"
+      }
     }
   },
   {
@@ -17,7 +22,13 @@
     "ssh": {
       "host": "10.8.0.3",
       "username": "arthadede",
-      "password": "password"
+      "password": "password",
+      "localIPAddress": "192.168.0.10",
+      "jumpHost": {
+        "host": "10.8.0.3",
+        "username": "arthadede",
+        "password": "password"
+      }
     }
   }
 ]
